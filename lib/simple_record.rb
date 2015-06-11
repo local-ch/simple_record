@@ -20,7 +20,6 @@
 # id = mm.id
 # # Get the object back
 # mm2 = MyModel.select(id)
-# puts 'got=' + mm2.name + ' and he/she is ' + mm.age.to_s + ' years old'
 #
 # Forked off old ActiveRecord2sdb library.
 
@@ -37,7 +36,7 @@ begin
   # comment out line below to test rails2 validations
   require 'active_model'
 rescue LoadError => ex
-  puts "ActiveModel not available, falling back."
+  # puts "ActiveModel not available, falling back."
 end
 require File.expand_path(File.dirname(__FILE__) + "/simple_record/validations")
 require File.expand_path(File.dirname(__FILE__) + "/simple_record/attributes")
@@ -97,7 +96,6 @@ module SimpleRecord
         options[:lines_between_flushes] = 100 unless options[:lines_between_flushes]
         @usage_logging_options[type] = options
       end
-      #puts 'SimpleRecord.usage_logging_options=' + SimpleRecord.usage_logging_options.inspect
     end
 
     def close_usage_log(type)
@@ -136,7 +134,6 @@ module SimpleRecord
       @aws_access_key = aws_access_key
       @aws_secret_key = aws_secret_key
       @@options.merge!(options)
-        #puts 'SimpleRecord.establish_connection with options: ' + @@options.inspect
       SimpleRecord::ActiveSdb.establish_connection(aws_access_key, aws_secret_key, @@options)
       if options[:connection_mode] == :per_thread
         @@auto_close_s3 = true
@@ -181,10 +178,6 @@ module SimpleRecord
   end
 
   class Base < SimpleRecord::ActiveSdb::Base
-
-
-#        puts 'Is ActiveModel defined? ' + defined?(ActiveModel).inspect
-
 
     if defined?(ActiveModel)
       @@active_model = true
@@ -254,10 +247,8 @@ module SimpleRecord
 
 
     def self.inherited(base)
-#      puts 'SimpleRecord::Base is inherited by ' + base.inspect
       Callbacks.setup_callbacks(base)
 
-#            base.has_strings :id
       base.has_dates :created, :updated
       base.before_create :set_created, :set_updated
       base.before_update :set_updated
@@ -298,7 +289,6 @@ module SimpleRecord
 
       # If you want a domain prefix for all your models, set it here.
     def self.set_domain_prefix(prefix)
-      #puts 'set_domain_prefix=' + prefix
       self.domain_prefix = prefix
     end
 
@@ -321,7 +311,6 @@ module SimpleRecord
       unless @domain
         # This strips off the module if there is one.
         n2 = name.split('::').last || name
-#                puts 'n2=' + n2
         if n2.respond_to?(:tableize)
           @domain = n2.tableize
         else
@@ -373,14 +362,11 @@ module SimpleRecord
       sdb_att_name = sdb_att_name(arg)
       arg = arg.to_s
 
-#            puts "Marking #{arg} dirty with #{value}" if SimpleRecord.logging?
       if @dirty.include?(sdb_att_name)
         old = @dirty[sdb_att_name]
-#                puts "#{sdb_att_name} was already dirty #{old}"
         @dirty.delete(sdb_att_name) if value == old
       else
         old = get_attribute(arg)
-#                puts "dirtifying #{sdb_att_name} old=#{old.inspect} to new=#{value.inspect}" if SimpleRecord.logging?
         @dirty[sdb_att_name] = old if value != old
       end
     end
@@ -451,12 +437,10 @@ module SimpleRecord
       #
 
     def save(options={})
-      puts 'SAVING: ' + self.inspect if SimpleRecord.logging?
         # todo: Clean out undefined values in @attributes (in case someone set the attributes hash with values that they hadn't defined)
       clear_errors
         # todo: decide whether this should go before pre_save or after pre_save? pre_save dirties "updated" and perhaps other items due to callbacks
       if options[:dirty]
-#                puts '@dirtyA=' + @dirty.inspect
         return true if @dirty.size == 0 # Nothing to save so skip it
       end
 
@@ -476,9 +460,7 @@ module SimpleRecord
         is_create = new_record? # self[:id].nil?
 
         dirty = @dirty
-                                #                    puts 'dirty before=' + @dirty.inspect
         if options[:dirty]
-#                        puts '@dirty=' + @dirty.inspect
           return true if @dirty.size == 0 # This should probably never happen because after pre_save, created/updated dates are changed
           options[:dirty_atts] = @dirty
         end
@@ -494,46 +476,29 @@ module SimpleRecord
 
     end
 
-#    if @@active_model
-#      alias_method :old_save, :save
-#
-#      def save(options={})
-##        puts 'extended save'
-#        x = create_or_update
-##        puts 'save x=' + x.to_s
-#        x
-#      end
-#    end
-
     def create_or_update(options) #:nodoc:
                                   #      puts 'create_or_update'
       ret = true
       run_callbacks :save do
         result = new_record? ? create(options) : update(options)
-#        puts 'save_callbacks result=' + result.inspect
         ret = result
       end
       ret
     end
 
     def create(options) #:nodoc:
-      puts '3 create'
       ret = true
       run_callbacks :create do
         x = do_actual_save(options)
-#        puts 'create old_save result=' + x.to_s
         ret = x
       end
       ret
     end
 
-#
     def update(options) #:nodoc:
-      puts '3 update'
       ret = true
       run_callbacks :update do
         x = do_actual_save(options)
-#        puts 'update old_save result=' + x.to_s
         ret = x
       end
       ret
@@ -550,7 +515,6 @@ module SimpleRecord
     end
 
     def self.create(attributes={})
-#            puts "About to create in domain #{domain}"
       super
     end
 
@@ -570,7 +534,6 @@ module SimpleRecord
         after_save_cleanup
         unless @@active_model
           if (is_create ? run_after_create : run_after_update) && run_after_save
-#                            puts 'all good?'
             return true
           else
             return false
@@ -584,7 +547,6 @@ module SimpleRecord
 
 
     def save_lobs(dirty=nil)
-#            puts 'dirty.inspect=' + dirty.inspect
       dirty = @dirty if dirty.nil?
       all_clobs = {}
       dirty_clobs = {}
@@ -596,7 +558,6 @@ module SimpleRecord
           if dirty.include?(k.to_s)
             dirty_clobs[k] = val
           else
-#                        puts 'NOT DIRTY'
           end
 
         end
@@ -606,7 +567,6 @@ module SimpleRecord
           # all clobs in one chunk
           # using json for now, could change later
           val = all_clobs.to_json
-          puts 'val=' + val.inspect
           put_lob(single_clob_id, val, :s3_bucket=>:new)
         else
           dirty_clobs.each_pair do |k, val|
@@ -703,9 +663,6 @@ module SimpleRecord
     end
 
     def pre_save(options)
-
-#      puts '@@active_model ? ' + @@active_model.inspect
-
       ok = true
       is_create = self[:id].nil?
       unless @@active_model
@@ -713,18 +670,10 @@ module SimpleRecord
         return false unless ok
       end
 
-#      validate()
-#      is_create ? validate_on_create : validate_on_update
       if !valid?
         puts 'not valid'
         return false
       end
-#
-##      puts 'AFTER VALIDATIONS, ERRORS=' + errors.inspect
-#      if (!errors.nil? && errors.size > 0)
-##        puts 'THERE ARE ERRORS, returning false'
-#        return false
-#      end
 
       unless @@active_model
         ok = run_after_validation && (is_create ? run_after_validation_on_create : run_after_validation_on_update)
@@ -735,9 +684,7 @@ module SimpleRecord
       unless @@active_model
         ok = respond_to?(:before_save) ? before_save : true
         if ok
-#          puts 'ok'
           if is_create && respond_to?(:before_create)
-#            puts 'responsds to before_create'
             ok = before_create
           elsif !is_create && respond_to?(:before_update)
             ok = before_update
@@ -762,13 +709,6 @@ module SimpleRecord
           @attributes.delete(key)
         end
       end
-#            @attributes.each do |key, value|
-##                puts 'key=' + key.inspect + ' value=' + value.inspect
-#                if value.nil? || (value.is_a?(Array) && value.size == 0) || (value.is_a?(Array) && value.size == 1 && value[0] == nil)
-#                    to_delete << key
-#                    @attributes.delete(key)
-#                end
-#            end
       return to_delete
     end
 
@@ -859,9 +799,7 @@ module SimpleRecord
     end
 
     def delete_niled(to_delete)
-#            puts 'to_delete=' + to_delete.inspect
       if to_delete.size > 0
-#      puts 'Deleting attributes=' + to_delete.inspect
         SimpleRecord.stats.deletes += 1
         delete_attributes to_delete
         to_delete.each do |att|
@@ -925,8 +863,6 @@ module SimpleRecord
       #   :retries => maximum number of times to retry this query on an error response.
       #   :shard => shard name or array of shard names to use on this query.
     def self.find(*params)
-      #puts 'params=' + params.inspect
-
       q_type = :all
       select_attributes=[]
       if params.size > 0
@@ -951,8 +887,6 @@ module SimpleRecord
       params_dup = params.dup
       if params.size > 1
         options = params[1]
-          #puts 'options=' + options.inspect
-          #puts 'after collect=' + options.inspect
         convert_condition_params(options)
         per_token = options[:per_token]
         consistent_read = options[:consistent_read]
@@ -963,7 +897,6 @@ module SimpleRecord
           params_dup[1] = op_dup
         end
       end
-        #            puts 'params2=' + params.inspect
 
       ret = q_type == :all ? [] : nil
       begin

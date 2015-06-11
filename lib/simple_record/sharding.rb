@@ -23,7 +23,6 @@ module SimpleRecord
       end
 
       def find_sharded(*params)
-        puts 'find_sharded ' + params.inspect
 
         options = params.size > 1 ? params[1] : {}
 
@@ -48,8 +47,6 @@ module SimpleRecord
               single = true
             end
         end
-        puts 'single? ' + single.inspect
-        puts 'by_ids? ' + by_ids.inspect
 
         # todo: should have a global executor
         executor = options[:concurrent] ? Concur::Executor.new_multi_threaded_executor : Concur::Executor.new_single_threaded_executor
@@ -68,17 +65,13 @@ module SimpleRecord
           p2[1] = op2
 
           futures << executor.execute do
-            puts 'executing=' + p2.inspect
             # todo: catch RecordNotFound errors and throw later if there really isn't any record found.
             rs = find(*p2)
-            puts 'rs=' + rs.inspect
             rs
           end
         end
         futures.each do |f|
-          puts 'getting future ' + f.inspect
           if params.first == :first || single
-            puts 'f.get=' + f.get.inspect
             return f.get if f.get
           elsif by_ids
             results << f.get if f.get

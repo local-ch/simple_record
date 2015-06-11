@@ -15,7 +15,6 @@ module SimpleRecord
                         file = type_options[:file]
                         if file.nil?
                             file = File.open(type_options[:filename], File.exists?(type_options[:filename]) ? "a" : "w")
-                            puts file.path
                             type_options[:file] = file
                         end
                         conditions = params[:conditions][0] if params[:conditions]

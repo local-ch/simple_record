@@ -27,7 +27,6 @@ module SimpleRecord
     end
 
     def as_json(options={})
-      puts 'SimpleRecord as_json called with options: ' + options.inspect
       result = {
           'id' => self.id
       }
