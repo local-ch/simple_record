@@ -66,15 +66,12 @@ module SimpleRecord
     end
 
     def validate_uniques
-      puts 'uniques=' + self.class.uniques.inspect
       self.class.uniques.each_pair do |k, v|
         val = self.send(k)
-        puts 'val=' + val.inspect
         if val
           conditions = new_record? ? ["#{k}=?", val] : ["#{k}=? AND id != ?", val, self.id]
 
           ret = self.class.find(:first, :conditions=>conditions)
-          puts 'ret=' + ret.inspect
           if ret
             errors.add(k, "must be unique.")
           end

@@ -671,7 +671,6 @@ module SimpleRecord
       end
 
       if !valid?
-        puts 'not valid'
         return false
       end
 
